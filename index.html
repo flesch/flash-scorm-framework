@@ -1,0 +1,59 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Verizon Wireless &mdash; Online Training</title>
+<meta name="description" content="VZW Flash SCORM Framework v2.6.0" />
+<script src="./assets/js/api-wrapper.js"></script>
+<script src="./assets/js/swfobject.js"></script>
+<link rel="stylesheet" href="./assets/css/core.css" />
+</head>
+<body>
+<script>
+(function(){
+
+    var swfobjectFlashVars = (function(query){
+        var flashVarsObject = (function(){
+            if (LMSInitialize()) {
+                return {
+                    fvStudentId: LMSGetValue('cmi.core.student_id'),
+                    fvStudentName: LMSGetValue('cmi.core.student_name'),
+                    fvLessonLocation: LMSGetValue('cmi.core.lesson_location'),
+                    fvSuspendData: LMSGetValue('cmi.suspend_data')    
+                };
+            }
+            return {};
+        })();            
+        if (query) {
+            var i = query.length, keyValuePair;
+            while (i--) {
+                keyValuePair = query[i].split('=');
+                if (keyValuePair[0] && keyValuePair[1]) {
+                    flashVarsObject[keyValuePair[0]] = keyValuePair[1];
+                }
+            }
+        }
+        return flashVarsObject;
+    })(window.location.search.replace(/^\?/, '').split('&')),
+    
+    swfobjectParameters = { menu:'true', base:'./', quality:'best', scale:'scale', sAlign:'TL', seamlessTabbing:'false', allowScriptAccess:'always', allowFullScreen:'true' },
+    swfobjectAttributes = { id:'application', name:'application', role:'window' };
+
+    swfobject.embedSWF('./assets/swf/application.swf', 'flash', '900', '700', '10', null, swfobjectFlashVars, swfobjectParameters, swfobjectAttributes, function(e){
+        window.focus();
+        if (e.success && e.ref) {
+            e.ref.focus();
+        }
+    });
+    
+})();
+</script>
+<div id="content">
+    <div id="flash">
+        <p>Please contact the <span id="itsc" class="vcard"><span class="org">ITSC Help Desk</span> at <span class="tel">866-899-4872</span></span> to install the latest version of the Adobe Flash player.</p>
+    </div>
+</div>
+<script src="./assets/js/json2.js"></script>
+<script src="./shell.js"></script>
+</body>
+</html>

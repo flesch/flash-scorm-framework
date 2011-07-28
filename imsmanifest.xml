@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest identifier="vzw-manifest" version="1.0" xmlns:imscp="http://www.imsproject.org/xsd/imscp_rootv1p1p2" xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_rootv1p2">
+	<organizations default="toc">
+		<organization identifier="toc">
+			<item identifier="vzw-item" identifierref="vzw-resource-0">
+				<title>Verizon Wireless - Online Training</title>
+				<adlcp:masteryscore>0</adlcp:masteryscore>
+			</item>
+		</organization>
+	</organizations>
+	<resources>
+		<resource identifier="vzw-resource-0" type="webcontent" adlcp:scormtype="sco" href="FOLDER_NAME/launch.htm" />
+	</resources>
+</manifest>
