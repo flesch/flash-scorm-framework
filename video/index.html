@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Verizon Wireless &mdash; Video</title>
+<meta name="description" content="VZTube Embedded Video Player" />
+<!--[if lte IE 8]><script src="../assets/js/json2.js"></script><![endif]-->
+<link rel="stylesheet" href="../assets/css/core.css" />
+</head>
+<body>
+<script type="application/json" id="config">
+{
+    "remote": "http://vztube.vzwcorp.com/videos/4453/droid-bionic-webtop-enabled-accessories",
+    "local": "local-fallback.mp4",
+    "unlock": 25,
+    "standalone": false
+}
+</script>
+<video id="media"></video>
+<script src="../assets/js/jwplayer.js"></script>
+<script>
+!(function(){
+
+	var intranet = /^file:|localhost|vzwcorp/.test(window.location.href), thinclient = /5.2/.test((/Windows NT 5.[0-9];/.exec(window.navigator.userAgent)||[]).pop()),
+		standalone = /"standalone"\:\s?true/.test(document.getElementById("config").innerHTML),
+		tracker, defaults, external, internal, settings, data, source;
+		
+	try { data = JSON.parse(document.getElementById("config").innerHTML); } catch (e) { return false; }
+	
+	function unlock() {
+		return true;
+	}
+
+	// This is an very simple method for merging object, and will only do a "shallow" copy.
+	// You could potentially lose nested objects!
+	function merge(a, b) {
+		var c = {}, attr;
+		for (attr in a) { c[attr] = a[attr]; }
+		for (attr in b) { c[attr] = b[attr]; }
+		return c;
+	}
+
+	// Grab the ID from the URL.
+	source = "http://vztube.vzwcorp.com/getVideoID.php?id=" + /\/?([0-9]+)\/?/.exec(data.remote).pop();
+	
+	// Let's set some defaults. These will be overwritten based the environment.
+	defaults = {
+		"width": data.width || "100%",
+		"height": data.height || "100%",
+		"controlbar": "bottom",
+	    "events": {
+	    	onPlay: function(e){
+	    		if (intranet && !tracker) { 
+	    			tracker = new Image();
+	    			tracker.src = "http://vztube.vzwcorp.com/videoembed.php?id=2949";
+	    		}
+			},
+			onTime: function(time) {
+				if ("unlock" in data & time === data.unlock) {
+					unlock();
+				}
+			},
+	    	onEnd: function(time){
+	    		if (window.opener) {
+	    			if ("unlock" in data) {
+	    				unlock();
+	    			}
+	    			window.close();
+	    		}
+	    	}
+	    }		
+	};
+	
+	external = {
+		"flashplayer": "../assets/swf/jwplayer.swf",
+		"file": data.local
+	};
+	
+	internal = {
+		"flashplayer": "http://vztube.vzwcorp.com/jwplayer.swf",
+		"file": source,
+		"logo.file": "http://vztube.vzwcorp.com/player-logo.png",
+		"logo.link": "http://vztube.vzwcorp.com",
+		"logo.out": 1,
+		"logo.position": "bottom-right",
+		"logo.timeout": 5,
+		"plugins": {
+			"http://vztube.vzwcorp.com/captions.swf": {
+				state: thinclient
+			}        
+	    }
+	};
+	
+	settings = intranet ? merge(external, internal) : external;
+	
+	jwplayer("media").setup(merge(defaults, settings));
+	
+})();
+</script>
+</body>
+</html>
