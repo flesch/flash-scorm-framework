@@ -10,7 +10,7 @@
 <body>
 <script type="application/json" id="config">
 {
-    "remote": "http://vztube.vzwcorp.com/videos/4453/droid-bionic-webtop-enabled-accessories",
+    "remote": "http://vztube.vzwcorp.com/videos/1390/our-credo",
     "local": "local-fallback.mp4",
     "unlock": 25
 }
@@ -20,9 +20,10 @@
 <script>
 !(function(){
 
-    var intranet = /^file:|localhost|vzwcorp/.test(window.location.href), thinclient = /5.2/.test((/Windows NT 5.[0-9];/.exec(window.navigator.userAgent)||[]).pop()),
-        standalone = /"standalone"\:\s?true/.test(document.getElementById("config").innerHTML),
-        tracker, defaults, external, internal, settings, video, data, source, meta;
+    var intranet = /^file:|localhost|vzwcorp/.test(window.location.href),
+    	thinclient = /5.2/.test((/Windows NT 5.[0-9];/.exec(window.navigator.userAgent)||[]).pop()),
+        protocol = /^https?/.test(window.location.protocol) ? window.location.protocol : "http:",
+        tracker, defaults, external, internal, settings, video, data, source, meta, id;
     
     // Parse the JSON config text above into native JSON.
     try { data = JSON.parse(document.getElementById("config").innerHTML); } catch (e) { return false; }
@@ -50,12 +51,14 @@
     }
 
     // Grab the ID from the URL.
-    source = "http://vztube.vzwcorp.com/getVideoID.php?id=" + /\/?([0-9]+)\/?/.exec(data.remote).pop();
+    id = /\/?([0-9]+)\/?/.exec(data.remote).pop();
+    source = protocol + "//vztube.vzwcorp.com/getVideoID.php?id=" + id;
     
     // Let's set some defaults. These will be overwritten based the environment.
     defaults = {
         "width": data.width || "100%",
         "height": data.height || "100%",
+        "skin": "../assets/video/skins/lightrv5.zip",
         "controlbar": "bottom",
         "events": {
             onReady: function(e) {
@@ -64,13 +67,13 @@
             onMeta: function(){
                 if (!meta && this.getMeta().width) {
                     meta = this.getMeta();
-                    resize(meta.width, meta.height + 25);
+                    resize(meta.width, meta.height + 24);
                 }
             },
             onPlay: function(e){
                 if (intranet && !tracker) { 
                     tracker = new Image();
-                    tracker.src = "http://vztube.vzwcorp.com/videoembed.php?id=2949";
+                    tracker.src = protocol + "//vztube.vzwcorp.com/videoembed.php?id=" + id;
                 }
             },
             onTime: function(time) {
@@ -95,19 +98,27 @@
     };
     
     internal = {
-        "flashplayer": "http://vztube.vzwcorp.com/jwplayer.swf",
+        "flashplayer": protocol + "//vztube.vzwcorp.com/jwplayer.swf",
         "file": source,
-        "logo.file": "http://vztube.vzwcorp.com/player-logo.png",
-        "logo.link": "http://vztube.vzwcorp.com",
+        "logo.file": protocol + "//vztube.vzwcorp.com/player-logo.png",
+        "logo.link": protocol + "//vztube.vzwcorp.com",
         "logo.out": 1,
         "logo.position": "bottom-right",
         "logo.timeout": 5,
         "plugins": {
-            "http://vztube.vzwcorp.com/captions.swf": {
+            "https://vztube.vzwcorp.com/captions.swf": {
                 state: thinclient
             }        
         }
     };
+    
+    if (intranet && protocol === "http") {
+    	internal.plugins = merge(internal.plugins, {
+            "http://vztube.vzwcorp.com/captions.swf": {
+                state: thinclient
+            }        
+        });
+    }
     
     settings = intranet ? merge(external, internal) : external;
     
