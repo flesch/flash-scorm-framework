@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <title>Verizon Wireless &mdash; Video</title>
 <meta name="description" content="VZTube Embedded Video Player" />
-<!--[if lte IE 8]><script src="../assets/js/json2.js"></script><![endif]-->
+<!--[if lte IE 8]><script src="../assets/js/json2-min.js"></script><![endif]-->
 <link rel="stylesheet" href="../assets/css/core.css" />
 </head>
 <body>
@@ -12,8 +12,7 @@
 {
     "remote": "http://vztube.vzwcorp.com/videos/4453/droid-bionic-webtop-enabled-accessories",
     "local": "local-fallback.mp4",
-    "unlock": 25,
-    "standalone": false
+    "unlock": 25
 }
 </script>
 <video id="media"></video>
@@ -21,80 +20,100 @@
 <script>
 !(function(){
 
-	var intranet = /^file:|localhost|vzwcorp/.test(window.location.href), thinclient = /5.2/.test((/Windows NT 5.[0-9];/.exec(window.navigator.userAgent)||[]).pop()),
-		standalone = /"standalone"\:\s?true/.test(document.getElementById("config").innerHTML),
-		tracker, defaults, external, internal, settings, data, source;
-		
-	try { data = JSON.parse(document.getElementById("config").innerHTML); } catch (e) { return false; }
-	
-	function unlock() {
-		return true;
-	}
+    var intranet = /^file:|localhost|vzwcorp/.test(window.location.href), thinclient = /5.2/.test((/Windows NT 5.[0-9];/.exec(window.navigator.userAgent)||[]).pop()),
+        standalone = /"standalone"\:\s?true/.test(document.getElementById("config").innerHTML),
+        tracker, defaults, external, internal, settings, video, data, source, meta;
+    
+    // Parse the JSON config text above into native JSON.
+    try { data = JSON.parse(document.getElementById("config").innerHTML); } catch (e) { return false; }
 
-	// This is an very simple method for merging object, and will only do a "shallow" copy.
-	// You could potentially lose nested objects!
-	function merge(a, b) {
-		var c = {}, attr;
-		for (attr in a) { c[attr] = a[attr]; }
-		for (attr in b) { c[attr] = b[attr]; }
-		return c;
-	}
+    // This is an very simple method for merging object, and will only do a "shallow" copy.
+    // You could potentially lose nested objects!
+    function merge(a, b) {
+        var c = {}, attr;
+        for (attr in a) { c[attr] = a[attr]; }
+        for (attr in b) { c[attr] = b[attr]; }
+        return c;
+    }
+    
+    function resize(width, height) {
+        if (window.name && width && height) {
+            var innerWidth = (window.innerWidth || document.documentElement.clientWidth),
+            innerHeight = (window.innerHeight || document.documentElement.clientHeight);
+            while(!(Math.floor(width)-innerWidth == 0 && Math.floor(height)-innerHeight == 0)) {
+                window.resizeBy(Math.floor(width-innerWidth), Math.floor(height-innerHeight));
+                innerWidth = (window.innerWidth || document.documentElement.clientWidth);
+                innerHeight = (window.innerHeight || document.documentElement.clientHeight);                    
+            }
+            window.moveTo(Math.floor((screen.availWidth/2)-(width/2)), Math.floor((screen.availHeight/2)-(height/2)));
+        }
+    }
 
-	// Grab the ID from the URL.
-	source = "http://vztube.vzwcorp.com/getVideoID.php?id=" + /\/?([0-9]+)\/?/.exec(data.remote).pop();
-	
-	// Let's set some defaults. These will be overwritten based the environment.
-	defaults = {
-		"width": data.width || "100%",
-		"height": data.height || "100%",
-		"controlbar": "bottom",
-	    "events": {
-	    	onPlay: function(e){
-	    		if (intranet && !tracker) { 
-	    			tracker = new Image();
-	    			tracker.src = "http://vztube.vzwcorp.com/videoembed.php?id=2949";
-	    		}
-			},
-			onTime: function(time) {
-				if ("unlock" in data & time === data.unlock) {
-					unlock();
-				}
-			},
-	    	onEnd: function(time){
-	    		if (window.opener) {
-	    			if ("unlock" in data) {
-	    				unlock();
-	    			}
-	    			window.close();
-	    		}
-	    	}
-	    }		
-	};
-	
-	external = {
-		"flashplayer": "../assets/swf/jwplayer.swf",
-		"file": data.local
-	};
-	
-	internal = {
-		"flashplayer": "http://vztube.vzwcorp.com/jwplayer.swf",
-		"file": source,
-		"logo.file": "http://vztube.vzwcorp.com/player-logo.png",
-		"logo.link": "http://vztube.vzwcorp.com",
-		"logo.out": 1,
-		"logo.position": "bottom-right",
-		"logo.timeout": 5,
-		"plugins": {
-			"http://vztube.vzwcorp.com/captions.swf": {
-				state: thinclient
-			}        
-	    }
-	};
-	
-	settings = intranet ? merge(external, internal) : external;
-	
-	jwplayer("media").setup(merge(defaults, settings));
-	
+    // Grab the ID from the URL.
+    source = "http://vztube.vzwcorp.com/getVideoID.php?id=" + /\/?([0-9]+)\/?/.exec(data.remote).pop();
+    
+    // Let's set some defaults. These will be overwritten based the environment.
+    defaults = {
+        "width": data.width || "100%",
+        "height": data.height || "100%",
+        "controlbar": "bottom",
+        "events": {
+            onReady: function(e) {
+                this.setMute(thinclient);                
+            },
+            onMeta: function(){
+                if (!meta && this.getMeta().width) {
+                    meta = this.getMeta();
+                    resize(meta.width, meta.height + 25);
+                }
+            },
+            onPlay: function(e){
+                if (intranet && !tracker) { 
+                    tracker = new Image();
+                    tracker.src = "http://vztube.vzwcorp.com/videoembed.php?id=2949";
+                }
+            },
+            onTime: function(time) {
+                if ("unlock" in data && data.unlock && "unlock" in window.opener && Math.round(time.position) === data.unlock) {
+                    window.opener.unlock();
+                }
+            },
+            onEnd: function(time){
+                if (window.opener) {
+                    if ("unlock" in window.opener) {
+                        window.opener.unlock();
+                    }
+                    window.close();
+                }
+            }
+        }        
+    };
+    
+    external = {
+        "flashplayer": "../assets/swf/jwplayer.swf",
+        "file": data.local
+    };
+    
+    internal = {
+        "flashplayer": "http://vztube.vzwcorp.com/jwplayer.swf",
+        "file": source,
+        "logo.file": "http://vztube.vzwcorp.com/player-logo.png",
+        "logo.link": "http://vztube.vzwcorp.com",
+        "logo.out": 1,
+        "logo.position": "bottom-right",
+        "logo.timeout": 5,
+        "plugins": {
+            "http://vztube.vzwcorp.com/captions.swf": {
+                state: thinclient
+            }        
+        }
+    };
+    
+    settings = intranet ? merge(external, internal) : external;
+    
+    video = jwplayer("media").setup(merge(defaults, settings));
+    video.play();
+    
 })();
 </script>
 </body>
