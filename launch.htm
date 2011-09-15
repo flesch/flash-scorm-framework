@@ -7,28 +7,24 @@
 <body>
 <script>
 (function(href, width, height, scrollbars, resizable){
-    var uri, scoWindow, a = document.createElement('a'); a.href = href; uri = (function(){
-        var launch = (/^\?([a-z0-9]+\.[a-z0-9]{3,4})/i.exec(a.search)||['index.html']).pop();
-        a.search = (a.search.replace(launch, '') + '&cache='+(+new Date)).replace(/^\??&/, '?');;
-        return a.href.replace((/\/([A-Z0-9a-z.]+)$/.exec(a.pathname)||[]).pop(), launch);
-    })();
+    var scoWindow, a = document.createElement("a"); a.href = href; if (!/^file/.test(window.location.protocol)) { a.search = "cache="+(+new Date); }
     if (/*@cc_on!@*/false) {
         if (/(vzwcorp|verizonwireless)\.com|localhost|file:/.test(window.location.href) && window.top.location == window.location) {
-            scoWindow = window.open(uri, 'xSCOClientWindow', 'width='+width+',height='+height+',left='+Math.round((screen.availWidth/2)-(width/2))+',top='+Math.round((screen.availHeight/2)-(height/2))+',scrollbars='+Number(!!scrollbars||screen.availWidth<=width)+',resizable='+Number(!!resizable||screen.availWidth<=width)+',menubar=0,toolbar=0,personalbar=0,location=0,directories=0,status=0,dependent=0');
-            if (typeof scoWindow !== 'undefined' && !!scoWindow) {                    
-                if (typeof window.opener !== 'undefined' && typeof window.opener.scoClientWindow !== 'undefined') {
+            scoWindow = window.open(a.href, "xSCOClientWindow", "width="+width+",height="+height+",left="+Math.round((screen.availWidth/2)-(width/2))+",top="+Math.round((screen.availHeight/2)-(height/2))+",scrollbars="+Number(!!scrollbars||screen.availWidth<=width)+",resizable="+Number(!!resizable||screen.availWidth<=width)+",menubar=0,toolbar=0,personalbar=0,location=0,directories=0,status=0,dependent=0");
+            if (typeof scoWindow !== "undefined" && !!scoWindow) {                    
+                if (typeof window.opener !== "undefined" && typeof window.opener.scoClientWindow !== "undefined") {
                     scoWindow.opener = window.opener;
                     window.opener.scoClientWindow = scoWindow;
                 }                
-                if (window.open('','_self') && (window.opener = window)) {
+                if (window.open("","_self") && (window.opener = window)) {
                     window.close();
                 }
                 return true;
             }
         }
-        window.location.replace(uri);
+        window.location.replace(a.href);
     } else {
-        alert('VZLearn does not support the the browser you are using.\nPlease close your browser and log back into VZLearn using Internet Explorer.');
+        alert("VZLearn does not support the the browser you are using.\nPlease close your browser and log back into VZLearn using Internet Explorer.");
     }
     return false;
 })(window.location.href, 910, 710, 0, 0);
