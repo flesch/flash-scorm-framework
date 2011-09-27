@@ -12,7 +12,7 @@ application.extend(function(){
 							 
 	// This really just abstracts the Javascript "launchExternalWindow" function.
 	function launchExternalVideo(name:String):Void {
-		vzw.external.ExternalProxy.call("launchExternalWindow", ["video/"+name+".html", 640, 385, 0, 0]);
+		vzw.external.ExternalProxy.call("launchExternalWindow", ["video/#!/"+name, 640, 384, 0, 0]);
 	}	
 	
 	// Globalize this function.
