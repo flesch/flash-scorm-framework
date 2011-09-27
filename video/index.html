@@ -43,7 +43,7 @@
     // Determine what video we're trying to load based on the filename or hash.
     source = (/[0-9]+[a-z-]+(?=.)/.exec(window.location.pathname)||[]).shift() || hash.replace(/\//g, "-");
     id = (/^[0-9]+/.exec(source)||[]).shift();
-    local = source + ".flv";
+    local = source + ".mp4";
     remote = protocol + "//vztube.vzwcorp.com/getVideoID.php?id=" + id;
     
     // Let's set some defaults. These will be overwritten based the environment.
