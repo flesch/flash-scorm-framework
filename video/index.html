@@ -41,11 +41,11 @@
     }
     
     // Determine what video we're trying to load based on the filename or hash.
-    source = (/[0-9]+[a-z-]+(?=.)/.exec(window.location.pathname)||[]).shift() || hash.replace(/\//g, "-");
+    source = hash.replace(/\//g, "-") || (/[0-9]+[a-z-]+(?=.)/.exec(window.location.pathname)||[]).shift();
     id = (/^[0-9]+/.exec(source)||[]).shift();
-    local = source + ".mp4";
-    remote = protocol + "//vztube.vzwcorp.com/getVideoID.php?id=" + id;
-    
+    local = id ? source + ".mp4" : source;
+    remote = id ? protocol + "//vztube.vzwcorp.com/getVideoID.php?id=" + id : source;
+        
     // Let's set some defaults. These will be overwritten based the environment.
     defaults = {
         "width": "100%",
@@ -108,7 +108,7 @@
         });
     }
     
-    if (id) {
+    if (id || local === remote) {
         settings = intranet ? merge(external, internal) : external;
         video = jwplayer("media").setup(merge(defaults, settings));
     }
