@@ -41,7 +41,7 @@ function LMSInitialize() {
                         onLMSConnectionError();
                     }
                 }
-            }, 10000);
+            }, 1200000);
             return true;
         }
     } catch(e) {}
