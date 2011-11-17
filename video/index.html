@@ -16,7 +16,7 @@
         hash = window.location.hash.replace(/#(!\/)?/, ""),
         thinclient = /5.2/.test((/Windows NT 5.[0-9];/.exec(window.navigator.userAgent)||[]).pop()),
         protocol = /^https?/.test(window.location.protocol) ? window.location.protocol : "http:",
-        tracker, defaults, external, internal, settings, video, source, id, local, remote, meta, plugin;
+        tracker, defaults, external, internal, settings, video, source, id, local, remote, captions, meta, plugin;
 
     // This is an very simple method for merging object, and will only do a "shallow" copy.
     // You could potentially lose nested objects!
@@ -41,10 +41,11 @@
     }
     
     // Determine what video we're trying to load based on the filename or hash.
-    source = hash.replace(/\//g, "-") || (/[0-9]+[a-z-]+(?=.)/.exec(window.location.pathname)||[]).shift();
+    source = (hash.replace(/\//g, "-") || (/[0-9]+[a-z-]+(?=.)/.exec(window.location.pathname)||[]).shift()).replace(/\.$/, "");
     id = (/^[0-9]+/.exec(source)||[]).shift();
-    local = id ? source + ".mp4" : source;
+    local = /\.(.*)$/.test(source) ? source : source + ".mp4"
     remote = id ? protocol + "//vztube.vzwcorp.com/getVideoID.php?id=" + id : source;
+    captions = local.replace(/\.(.*)$/, ".xml");
         
     // Let's set some defaults. These will be overwritten based the environment.
     defaults = {
@@ -108,7 +109,7 @@
         "flashplayer": "../assets/swf/jwplayer.swf",
         "file": local,
         "plugins": {
-            "captions-2": merge(internal.plugins["https://vztube.vzwcorp.com/captions.swf"], {file:"captions.xml", fontSize:10})
+            "captions-2": merge(internal.plugins["https://vztube.vzwcorp.com/captions.swf"], {file:captions, fontSize:10})
         }
     };
     
