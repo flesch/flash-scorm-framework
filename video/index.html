@@ -79,6 +79,15 @@
             }
         }        
     };
+
+    // If we're on a thin-client, let's update the defaults to limit size (to enable Flash acceleration).
+    if (thinclient) {
+        defaults = merge(defaults, {
+            "width": 320,
+            "height": 240,
+            "controlbar": "over"    
+        });
+    }
     
     external = {
         "flashplayer": "../assets/swf/jwplayer.swf",
