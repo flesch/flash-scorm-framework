@@ -16,7 +16,7 @@
         hash = window.location.hash.replace(/#(!\/)?/, ""),
         thinclient = /5.2/.test((/Windows NT 5.[0-9];/.exec(window.navigator.userAgent)||[]).pop()),
         protocol = /^https?/.test(window.location.protocol) ? window.location.protocol : "http:",
-        tracker, defaults, external, internal, settings, video, source, id, local, remote, meta;
+        tracker, defaults, external, internal, settings, video, source, id, local, remote, meta, plugin;
 
     // This is an very simple method for merging object, and will only do a "shallow" copy.
     // You could potentially lose nested objects!
@@ -89,32 +89,48 @@
         });
     }
     
-    external = {
-        "flashplayer": "../assets/swf/jwplayer.swf",
-        "file": local
-    };
-    
+    // External ("indirect") and Internal configuration. Based on our environment, this will be `merged`
+    // into a `settings` object.
     internal = {
         "flashplayer": protocol + "//vztube.vzwcorp.com/jwplayer.swf",
         "file": remote,
-        "logo.file": protocol + "//vztube.vzwcorp.com/player-logo.png",
-        "logo.link": protocol + "//vztube.vzwcorp.com",
-        "logo.out": 1,
-        "logo.position": "bottom-right",
-        "logo.timeout": 5,
         "plugins": {
             "https://vztube.vzwcorp.com/captions.swf": {
-                state: thinclient
-            }        
+                state: thinclient,
+                back: true,
+                color: "#ffffff",
+                fontSize: 8
+            }
         }
     };
     
-    if (intranet && protocol === "http:") {
-        internal.plugins = merge(internal.plugins, {
-            "http://vztube.vzwcorp.com/captions.swf": {
-                state: thinclient
-            }        
+    external = {
+        "flashplayer": "./assets/swf/jwplayer.swf",
+        "file": local,
+        "plugins": {
+            "captions-2": merge(internal.plugins["https://vztube.vzwcorp.com/captions.swf"], {file:"captions.xml", fontSize:10})
+        }
+    };
+    
+    // If we're not on a thin-client and on the intranet, let's promote VZTube.
+    if (!thinclient && intranet) {
+        internal = merge(internal, {
+            "logo.file": protocol + "//vztube.vzwcorp.com/player-logo.png",
+            "logo.link": protocol + "//vztube.vzwcorp.com/videos/" + hash,
+            "logo.out": 1,
+            "logo.position": "bottom-right",
+            "logo.timeout": 5
         });
+    }
+    
+    // Plugins won't work if protocols are unmatched.
+    if (intranet && protocol === "http:") {
+        for (plugin in internal.plugins) {
+            if (internal.plugins.hasOwnProperty(plugin) && /^https:\/\//.test(plugin)) {
+                internal.plugins[plugin.replace(/^https:\/\//, "http://")] = internal.plugins[plugin];
+                delete internal.plugins[plugin];
+            }
+        }
     }
     
     if (id || local === remote) {
