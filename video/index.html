@@ -70,7 +70,7 @@
                     tracker.src = protocol + "//vztube.vzwcorp.com/videoembed.php?id=" + id;
                 }
             },
-            onEnd: function(time){
+            onComplete: function(time){
                 if (window.opener) {
                     if ("unlock" in window.opener) {
                         window.opener.unlock();
