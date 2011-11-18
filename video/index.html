@@ -66,8 +66,8 @@
             },
             onPlay: function(e){
                 if (intranet && !tracker) { 
-                    tracker = new Image();
-                    tracker.src = protocol + "//vztube.vzwcorp.com/videoembed.php?id=" + id;
+                    tracker = document.createElement("img");
+                    tracker.src = protocol + "//vztube.vzwcorp.com/videoembed.php?id=" + id + "&cache=" + (+new Date);                    
                 }
             },
             onComplete: function(time){
