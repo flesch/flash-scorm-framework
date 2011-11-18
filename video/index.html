@@ -16,7 +16,7 @@
         hash = window.location.hash.replace(/#(!\/)?/, ""),
         thinclient = /5.2/.test((/Windows NT 5.[0-9];/.exec(window.navigator.userAgent)||[]).pop()),
         protocol = /^https?/.test(window.location.protocol) ? window.location.protocol : "http:",
-        tracker, defaults, external, internal, settings, video, source, id, local, remote, captions, meta, plugin;
+        tracker, defaults, external, internal, settings, video, source, id, local, remote, captions, plugin;
 
     // This is an very simple method for merging object, and will only do a "shallow" copy.
     // You could potentially lose nested objects!
@@ -58,10 +58,10 @@
             onReady: function(e) {
                 this.setMute(thinclient);                
             },
-            onMeta: function(){
-                if (!meta && this.getMeta().width) {
-                    meta = this.getMeta();
-                    resize(meta.width, meta.height + 24);
+            onMeta: function(e){
+                if (!thinclient && "onMeta" in this && "width" in e.metadata) {
+                    resize(e.metadata.width, e.metadata.height + 24);
+                    delete this.onMeta;
                 }
             },
             onPlay: function(e){
