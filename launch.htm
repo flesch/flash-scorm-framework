@@ -9,7 +9,7 @@
 (function(href, width, height, scrollbars, resizable){
     var scoWindow, a = document.createElement("a"); a.href = href; if (!/^file/.test(window.location.protocol)) { a.search = "cache="+(+new Date); }
     if (/*@cc_on!@*/false) {
-        if (/(vzwcorp|verizonwireless)\.com|localhost|file:/.test(window.location.href) && window.top.location == window.location) {
+        if (/(vzwcorp|verizonwireless|verizon)\.com|localhost|file:/.test(window.location.href) && window.top.location == window.location) {
             scoWindow = window.open(a.href, "xSCOClientWindow", "width="+width+",height="+height+",left="+Math.round((screen.availWidth/2)-(width/2))+",top="+Math.round((screen.availHeight/2)-(height/2))+",scrollbars="+Number(!!scrollbars||screen.availWidth<=width)+",resizable="+Number(!!resizable||screen.availWidth<=width)+",menubar=0,toolbar=0,personalbar=0,location=0,directories=0,status=0,dependent=0");
             if (typeof scoWindow !== "undefined" && !!scoWindow) {                    
                 if (typeof window.opener !== "undefined" && typeof window.opener.scoClientWindow !== "undefined") {
