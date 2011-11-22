@@ -55,7 +55,7 @@ function lofi() {
 
 (function(){
     window.FlashCanvasOptions = {'swfPath':'assets/swf/'};
-    var s = document.createElement('script'); s.src = 'assets/js/' + (('CanvasRenderingContext2D' in window) ? 'flashcanvas.js' : 'echelon.js');
+    var s = document.createElement('script'); s.src = 'assets/js/' + (('CanvasRenderingContext2D' in window) ? 'echelon.js' : 'flashcanvas.js');
     s.onload = s.onreadystatechange = function(){
         if (/*@cc_on!@*/false && /ed|te/.test(this.readyState)) {
             s = document.createElement('script'); s.src = 'assets/js/echelon.js';
