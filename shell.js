@@ -47,10 +47,7 @@ function onLMSConnectionError() {
 }
 
 function lofi() {
-    var application = document.getElementById('application');
-    if (application && 'lofi' in application) {
-        return application.lofi();
-    }
+    return /5.2/.test((/Windows NT 5.[0-9];/.exec(window.navigator.userAgent)||[]).pop());
 }
 
 (function(){
