@@ -15,7 +15,7 @@ class vzw.application.Application extends vzw.controls.Slides {
 	public var addEventListener:Function;
 	public var removeEventListener:Function;	
 
-	public var version:String = "2.6.0";
+	public var version:String = "2.7.0";
 	public var session:Number, domain:String, global:Object, data:Object, xml:XML;
 		
 	public function Application() {	
