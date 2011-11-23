@@ -1,6 +1,6 @@
 !(function () {
 
-  var api, container, session, models, cache;
+  var api, container, session, models, cache = [];
 
   // Let's list out the data models we care about. We could populate this array with `cmi.core._children`,
   // but it includes more keys than we'll ever want to use (and we'd have to pull out the read-only ones).
@@ -59,22 +59,28 @@
   }
 
   function LMSGetValue(model) {
-    var value;
-    if (!(model in cache) || !cache[model]) {
-      if (value = api.LMSGetValue(model) && +api.LMSGetLastError() === 0) {
-        cache[model] = value;
+    if (api) {
+      var value;
+      if (!(model in cache) || !cache[model]) {
+        if (value = api.LMSGetValue(model) && +api.LMSGetLastError() === 0) {
+          cache[model] = value;
+        }
       }
+      return cache[model];
     }
-    return cache[model];
+    return null;
   }
 
   function LMSSetValue(model, value, persist) {
-    value = (typeof value !== "string") ? JSON.stringify(value) : value;
-    if (persist && api.LMSSetValue(model, value) === "true" && +api.LMSGetLastError() === 0) {
-      value = api.LMSGetValue(model);
+    if (api) {
+      value = (typeof value !== "string") ? JSON.stringify(value) : value;
+      if (persist && (api.LMSSetValue(model, value) !== "true" || +api.LMSGetLastError() !== 0)) {
+        return false;
+      }
+      cache[model] = value;
+      return cache[model];
     }
-    cache[model] = value;
-    return cache[model];
+    return false;
   }
 
 
@@ -91,18 +97,22 @@
   }
 
   function LMSCommit() {
-    if (api.LMSCommit("") === "true" && +api.LMSGetLastError() === 0) {
+    if (api && api.LMSCommit("") === "true" && +api.LMSGetLastError() === 0) {
       return true;
     }
     return false;
   }
 
   function LMSInitialize() {
-    if (api.LMSInitialize("") === "true" && /0|101/.test(+api.LMSGetLastError())) {
-
+    if (api && api.LMSInitialize("") === "true" && /0|101/.test(+api.LMSGetLastError())) {
+      
       // Let's cache the data we care about from the LMS.
-      // This looks kind of weird, but `LMSGetValue` itself will update the cache.
-      each(models, LMSGetValue);
+      each(models, function(model, index, list){
+        var value;
+        if (value = api.LMSGetValue(model) && +api.LMSGetLastError() === 0) {
+          cache[model] = value;
+        }
+      });
 
       // Capture when we've started communication. We'll use this timestamp to determine
       // how long a learner has been in the course.
@@ -137,28 +147,31 @@
     return false;
   }
 
-  function LMSFinish() {
-
-    // Let's track how long the user's session was.
-    models["cmi.core.session_time"] = format_duration(session, +new Date);
-
-    // When we exit, let's dump all our cached data into the LMS.
-    each(models, function (model) {
-      LMSSetValue(model, cache[model], true);
-    });
-
-    if (LMSCommit() && (api.LMSFinish("") === "true")) {
-      if (container.parent.frames.SCODataFrame) {
-        if (container.mode === "test" && "_displaySuccess" in container.parent.frames.SCODataFrame) {
-          container.parent.frames.SCODataFrame._displaySuccess.call(container);
+  function LMSFinish() {  
+    if (api) {
+      // Let's track how long the user's session was.
+      models["cmi.core.session_time"] = format_duration(session, +new Date);
+  
+      // When we exit, let's dump all our cached data into the LMS.
+      each(models, function(value, index, list){
+        if (cache[value] && !/cmi\.core\.student_(id|name)/.test(value)) {
+          LMSSetValue(value, cache[value], true);
         }
-        // This throws an error once in a while. Let's hide it.
-        container.parent.frames.SCODataFrame.cleanup = function () {};
-        // Everybody goes crazy for this... This just refreshes the page, so that it
-        // appears as if the status is updated in realtime.
-        container.location.href = container.location.href;
+      });
+  
+      if (LMSCommit() && (api.LMSFinish("") === "true")) {
+        if (container.parent.frames.SCODataFrame) {
+          if (container.mode === "test" && "_displaySuccess" in container.parent.frames.SCODataFrame) {
+            container.parent.frames.SCODataFrame._displaySuccess.call(container);
+          }
+          // This throws an error once in a while. Let's hide it.
+          container.parent.frames.SCODataFrame.cleanup = function () {};
+          // Everybody goes crazy for this... This just refreshes the page, so that it
+          // appears as if the status is updated in realtime.
+          container.location.href = container.location.href;
+        }
+        return true;
       }
-      return true;
     }
     return false;
   }
