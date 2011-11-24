@@ -1,10 +1,6 @@
 !(function () {
 
-  var api, container, session, models, cache = [];
-
-  // Let's list out the data models we care about. We could populate this array with `cmi.core._children`,
-  // but it includes more keys than we'll ever want to use (and we'd have to pull out the read-only ones).
-  models = ["cmi.core.student_id", "cmi.core.student_name", "cmi.core.lesson_location", "cmi.core.lesson_status", "cmi.core.score.raw", "cmi.suspend_data"];
+  var api, container, session, cache = [], breaker = {};
 
   // Capture the LMS API. We only need to search for it once, so we can cache it in a variable and re-use it.
   // Some SCORM API Wrappers will search for the API with every SCORM command. Is it really going to move?
@@ -35,14 +31,14 @@
       obj.forEach(iterator, context);
     } else if (obj.length === +obj.length) {
       for (var i = 0, l = obj.length; i < l; i++) {
-        if (i in obj && iterator.call(context, obj[i], i, obj) === {}) {
+        if (i in obj && iterator.call(context, obj[i], i, obj) === breaker) {
           return;
         }
       }
     } else {
       for (var key in obj) {
         if (obj.hasOwnProperty(key)) {
-          if (iterator.call(context, obj[key], key, obj) === {}) {
+          if (iterator.call(context, obj[key], key, obj) === breaker) {
             return;
           }
         }
@@ -59,30 +55,19 @@
   }
 
   function LMSGetValue(model) {
-    if (api) {
-      var value;
-      if (!(model in cache) || !cache[model]) {
-        if (value = api.LMSGetValue(model) && +api.LMSGetLastError() === 0) {
-          cache[model] = value;
-        }
-      }
+    if (cache[model]) { return cache[model]; }    
+    var value;
+    if (api && value = api.LMSGetValue(model) && +api.LMSGetLastError() === 0) {
+      cache[model] = value;
       return cache[model];
     }
     return null;
   }
 
-  function LMSSetValue(model, value, persist) {
-    if (api) {
-      value = (typeof value !== "string") ? JSON.stringify(value) : value;
-      if (persist && (api.LMSSetValue(model, value) !== "true" || +api.LMSGetLastError() !== 0)) {
-        return false;
-      }
-      cache[model] = value;
-      return cache[model];
-    }
-    return false;
+  function LMSSetValue(model, value) {
+    cache[model] = (typeof value !== "string") ? JSON.stringify(value) : value;
+    return cache[model];
   }
-
 
   function LMSGetLastError() {
     return Number(api.LMSGetLastError()) || null;
@@ -97,22 +82,27 @@
   }
 
   function LMSCommit() {
-    if (api && api.LMSCommit("") === "true" && +api.LMSGetLastError() === 0) {
-      return true;
+    if (api) {
+      var commit = false;
+      each(cache, function(model, index, list){
+        if (cache[model] && !/cmi\.core\.student_(id|name)/.test(model)) {
+          if (api.LMSSetValue(model, cache[model]) === "true" && +api.LMSGetLastError() === 0) {
+            commit = true;
+            return true;
+          }
+          commit = false;
+          return breaker;
+        }
+      });
+      if (commit && api.LMSCommit("") === "true" && +api.LMSGetLastError() === 0) {
+        return true;
+      }
     }
     return false;
   }
 
   function LMSInitialize() {
     if (api && api.LMSInitialize("") === "true" && /0|101/.test(+api.LMSGetLastError())) {
-      
-      // Let's cache the data we care about from the LMS.
-      each(models, function(model, index, list){
-        var value;
-        if (value = api.LMSGetValue(model) && +api.LMSGetLastError() === 0) {
-          cache[model] = value;
-        }
-      });
 
       // Capture when we've started communication. We'll use this timestamp to determine
       // how long a learner has been in the course.
@@ -131,16 +121,14 @@
       }
 
       var check = window.setInterval(function () {
-        try {
-          api.LMSSetValue("cmi.core.lesson_location", api.LMSGetValue("cmi.core.lesson_location"));
-        } catch (e) {}
-        if (!LMSCommit()) {
+        try { api.LMSSetValue("cmi.core.lesson_location", api.LMSGetValue("cmi.core.lesson_location")); } catch (e) {}
+        if (api.LMSCommit("") !== "true" && +api.LMSGetLastError() !== 0) {
           window.clearInterval(check);
           if (window.onLMSConnectionError) {
             window.onLMSConnectionError();
           }
         }
-      }, 300000);
+      }, 300000); // 5 minutes
 
       return true;
     }
@@ -150,15 +138,8 @@
   function LMSFinish() {  
     if (api) {
       // Let's track how long the user's session was.
-      models["cmi.core.session_time"] = format_duration(session, +new Date);
-  
-      // When we exit, let's dump all our cached data into the LMS.
-      each(models, function(value, index, list){
-        if (cache[value] && !/cmi\.core\.student_(id|name)/.test(value)) {
-          LMSSetValue(value, cache[value], true);
-        }
-      });
-  
+      LMSSetValue("cmi.core.session_time", format_duration(session, +new Date));
+      // LMSCommit will send anything in the cache to the LMS.
       if (LMSCommit() && (api.LMSFinish("") === "true")) {
         if (container.parent.frames.SCODataFrame) {
           if (container.mode === "test" && "_displaySuccess" in container.parent.frames.SCODataFrame) {
