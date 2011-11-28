@@ -1,7 +1,11 @@
 !(function () {
 
-  var api, container, session, cache = [], breaker = {};
-
+  var api, container, frame, session, cache = [], store = [], breaker = {},
+  // Save bytes in the minified version.
+  array_proto = Array.prototype,
+  native_forEach = array_proto.forEach,
+  native_every = array_proto.every;
+  
   // Capture the LMS API. We only need to search for it once, so we can cache it in a variable and re-use it.
   // Some SCORM API Wrappers will search for the API with every SCORM command. Is it really going to move?
   api = (function (search) {
@@ -20,14 +24,17 @@
         return self.call(this, container.opener);
       }
     }
+    if (container.parent.frames && "SCODataFrame" in container.parent.frames) {
+      frame = container.parent.frames.SCODataFrame;
+    }
     // Return the API Object.
     return container.API;
   }).call(this);
-
+  
   // https://github.com/documentcloud/underscore/blob/master/underscore.js#L75
   function each(obj, iterator, context) {
     if (obj === null) { return; }
-    if (Array.prototype.forEach && obj.forEach === Array.prototype.forEach) {
+    if (native_forEach && obj.forEach === native_forEach) {
       obj.forEach(iterator, context);
     } else if (obj.length === +obj.length) {
       for (var i = 0, l = obj.length; i < l; i++) {
@@ -46,6 +53,31 @@
     }
   }
 
+  // https://github.com/documentcloud/underscore/blob/master/underscore.js#L175
+  function every(obj, iterator, context) {
+    var result = true;
+    if (obj === null) { return result; }
+    if (native_every && obj.every === native_every) {
+      return obj.every(iterator, context);
+    }
+    each(obj, function(value, index, list) {
+      if (!(result = result && iterator.call(context, value, index, list))) {
+        return breaker;
+      }
+    });
+    return result;
+  }
+
+  function contains(a, obj) {
+    var i = a.length;
+    while (i--) {
+      if (a[i] === obj) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function format_duration(start, end) {
     var duration = end - start, h, m, s;
     h = /[0-9]{4}$/.exec("000" + Math.floor(duration / 3600000));
@@ -55,17 +87,20 @@
   }
 
   function LMSGetValue(model) {
-    if (cache[model]) { return cache[model]; }    
     var value;
-    if (api && value = api.LMSGetValue(model) && +api.LMSGetLastError() === 0) {
-      cache[model] = value;
-      return cache[model];
+    if (cache[model]) { return cache[model]; }
+    if (api) {  
+      if ((value = api.LMSGetValue(model)) && +api.LMSGetLastError() === 0) {
+        cache[model] = value;
+        return cache[model];
+      }
     }
     return null;
   }
 
   function LMSSetValue(model, value) {
     cache[model] = (typeof value !== "string") ? JSON.stringify(value) : value;
+    if (!contains(store, model)) { store.push(model); }
     return cache[model];
   }
 
@@ -82,23 +117,19 @@
   }
 
   function LMSCommit() {
+    var commit = false;
     if (api) {
-      var commit = false;
-      each(cache, function(model, index, list){
-        if (cache[model] && !/cmi\.core\.student_(id|name)/.test(model)) {
-          if (api.LMSSetValue(model, cache[model]) === "true" && +api.LMSGetLastError() === 0) {
-            commit = true;
-            return true;
-          }
-          commit = false;
-          return breaker;
+      commit = every(store, function(model, index, list){
+        if (api.LMSSetValue(model, cache[model]) === "true" && +api.LMSGetLastError() === 0) {
+          return true;
         }
+        return false;
       });
-      if (commit && api.LMSCommit("") === "true" && +api.LMSGetLastError() === 0) {
-        return true;
+      if (commit && (store = []) && api.LMSCommit("") === "true" && +api.LMSGetLastError() === 0) {
+        return commit;
       }
     }
-    return false;
+    return commit;
   }
 
   function LMSInitialize() {
@@ -115,9 +146,9 @@
 
       // In PeopleSoft ELM, `LMSCommit` triggers an alert, which can be pretty annoying.
       // This will remove that (and we'll fake it in LMSFinish).
-      if (container.parent.frames.SCODataFrame && container.mode === "test") {
-        container.parent.frames.SCODataFrame._displaySuccess = container.parent.frames.SCODataFrame.displaySuccess;
-        container.parent.frames.SCODataFrame.displaySuccess = function () {};
+      if (frame && container.mode === "test" && "displaySuccess" in frame) {
+        frame._displaySuccess = frame.displaySuccess;
+        frame.displaySuccess = function(){};
       }
 
       var check = window.setInterval(function () {
@@ -141,12 +172,12 @@
       LMSSetValue("cmi.core.session_time", format_duration(session, +new Date));
       // LMSCommit will send anything in the cache to the LMS.
       if (LMSCommit() && (api.LMSFinish("") === "true")) {
-        if (container.parent.frames.SCODataFrame) {
-          if (container.mode === "test" && "_displaySuccess" in container.parent.frames.SCODataFrame) {
-            container.parent.frames.SCODataFrame._displaySuccess.call(container);
+        if (frame) {
+          if (container.mode === "test" && "_displaySuccess" in frame) {
+            frame._displaySuccess.call(container);
           }
           // This throws an error once in a while. Let's hide it.
-          container.parent.frames.SCODataFrame.cleanup = function () {};
+          frame.cleanup = function(){};
           // Everybody goes crazy for this... This just refreshes the page, so that it
           // appears as if the status is updated in realtime.
           container.location.href = container.location.href;
