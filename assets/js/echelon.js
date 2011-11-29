@@ -17,7 +17,6 @@
       document.getElementsByTagName('body')[0].insertBefore(canvas, document.getElementsByTagName('body')[0].firstChild);
   
       if (canvas && 'FlashCanvas' in window) {
-          FlashCanvas.setOptions({disableContextMenu:true, swfPath:'assets/swf/'});
           FlashCanvas.initElement(canvas);
       }
       

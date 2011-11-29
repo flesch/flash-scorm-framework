@@ -51,11 +51,11 @@ function lofi() {
 }
 
 (function(){
-    window.FlashCanvasOptions = {'swfPath':'assets/swf/'};
-    var s = document.createElement('script'); s.src = 'assets/js/' + (('CanvasRenderingContext2D' in window) ? 'echelon.js' : 'flashcanvas.js');
+    window.FlashCanvasOptions = {disableContextMenu:true, swfPath:'assets/swf/'};
+    var s = document.createElement('script'); s.src = 'assets/js/' + (('CanvasRenderingContext2D' in window) ? 'echelon-min.js' : 'flashcanvas.js');
     s.onload = s.onreadystatechange = function(){
         if (/*@cc_on!@*/false && /ed|te/.test(this.readyState)) {
-            s = document.createElement('script'); s.src = 'assets/js/echelon.js';
+            s = document.createElement('script'); s.src = 'assets/js/echelon-min.js';
             this.parentNode.insertBefore(s, this.nextSibling);            
         }
         document.getElementsByTagName('html')[0].className = 'echelon';
