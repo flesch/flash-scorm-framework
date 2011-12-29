@@ -10,13 +10,13 @@
 <video id="media"></video>
 <script src="../assets/js/jwplayer.js"></script>
 <script>
-;(function(){
+!(function(){
 
     var intranet = /^file:|localhost|vzwcorp/.test(window.location.href),
         hash = window.location.hash.replace(/#(!\/)?/, ""),
         thinclient = /5.2/.test((/Windows NT 5.[0-9];/.exec(window.navigator.userAgent)||[]).pop()),
         protocol = /^https?/.test(window.location.protocol) ? window.location.protocol : "http:",
-        tracker, defaults, external, internal, settings, video, source, id, local, remote, captions, plugin;
+        tracker, defaults, external, internal, settings, video, source, id, local, remote, captions, plugin, network;
 
     // This is an very simple method for merging object, and will only do a "shallow" copy.
     // You could potentially lose nested objects!
@@ -27,15 +27,12 @@
         return c;
     }
     
-    function resize(width, height) {
-        if (window.name && width && height) {
-            var innerWidth = (window.innerWidth || document.documentElement.clientWidth),
-            innerHeight = (window.innerHeight || document.documentElement.clientHeight);
-            while(!(Math.floor(width)-innerWidth === 0 && Math.floor(height)-innerHeight === 0)) {
-                window.resizeBy(Math.floor(width-innerWidth), Math.floor(height-innerHeight));
-                innerWidth = (window.innerWidth || document.documentElement.clientWidth);
-                innerHeight = (window.innerHeight || document.documentElement.clientHeight);
-            }
+    function resize(w, h) {
+        if (window.name && w && h) {
+            var innerWidth, innerHeight, width = Math.floor(w), height = Math.floor(h);
+            innerWidth = (window.innerWidth || document.documentElement.clientWidth);
+            innerHeight = (window.innerHeight || document.documentElement.clientHeight);	  
+            window.resizeBy(Math.floor(width-innerWidth), Math.floor(height-innerHeight));
             window.moveTo(Math.floor((screen.availWidth/2)-(width/2)), Math.floor((screen.availHeight/2)-(height/2)));
         }
     }
@@ -67,7 +64,7 @@
             onPlay: function(e){
                 if (intranet && !tracker) { 
                     tracker = document.createElement("img");
-                    tracker.src = protocol + "//vztube.vzwcorp.com/videoembed.php?id=" + id + "&cache=" + (+new Date);                    
+                    tracker.src = protocol + "//vztube.vzwcorp.com/videoembed.php?id=" + id + "&cache=" + (+new Date);
                 }
             },
             onComplete: function(time){
@@ -116,7 +113,7 @@
     if (!thinclient && intranet) {
         internal = merge(internal, {
             "logo.file": protocol + "//vztube.vzwcorp.com/player-logo.png",
-            "logo.link": protocol + "//vztube.vzwcorp.com/videos/" + hash,
+            "logo.link": "http://vztube.vzwcorp.com/videos/" + hash,
             "logo.over": 1,
             "logo.out": 0.15,
             "logo.position": "bottom-right",
@@ -135,8 +132,22 @@
     }
     
     if (id || local === remote) {
-        settings = intranet ? merge(external, internal) : external;
-        video = jwplayer("media").setup(merge(defaults, settings));
+      
+        settings = merge(defaults, (intranet ? internal : external));
+        video = jwplayer("media").setup(settings);
+
+        // Some users may be accessing VZLearn from *.vzwcorp.com, but may not have access to VZTube (like OSVs).
+        if (intranet && !network) {
+            network = document.createElement("img");
+            // If the image fails to load, the we know the user isn't really on the intranet.
+            network.onerror = function(){
+              video = jwplayer("media").setup(merge(defaults, external));
+              intranet = false;
+            };
+            // This assumes this image will always be available.
+            network.src = protocol + "//vztube.vzwcorp.com/images/spacer.gif?cache=" + (+new Date);
+        }
+        
     }
     
 })();
