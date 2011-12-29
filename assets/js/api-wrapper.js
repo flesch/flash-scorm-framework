@@ -1,6 +1,6 @@
 !(function () {
 
-  var api, container, frame, session, cache = [], store = [], breaker = {},
+  var api, container, frame, session, cache = [], store = [], breaker = {}, keepalive,
   // Save bytes in the minified version.
   array_proto = Array.prototype,
   native_forEach = array_proto.forEach,
@@ -151,15 +151,16 @@
         frame.displaySuccess = function(){};
       }
 
-      var check = window.setInterval(function () {
-        try { api.LMSSetValue("cmi.core.lesson_location", api.LMSGetValue("cmi.core.lesson_location")); } catch (e) {}
-        if (api.LMSCommit("") !== "true" && +api.LMSGetLastError() !== 0) {
-          window.clearInterval(check);
-          if (window.onLMSConnectionError) {
-            window.onLMSConnectionError();
+      if (!keepalive) {
+        keepalive = window.setInterval(function(){
+          if (!LMSCommit()) {
+            window.clearInterval(keepalive);
+            if (window.onLMSConnectionError) {
+              window.onLMSConnectionError();
+            }
           }
-        }
-      }, 300000); // 5 minutes
+        }, 300000); // 5 minutes
+      }
 
       return true;
     }
