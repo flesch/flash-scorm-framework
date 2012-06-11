@@ -47,7 +47,7 @@ function onLMSConnectionError() {
 }
 
 function lofi() {
-    return /5.2/.test((/Windows NT 5.[0-9];/.exec(window.navigator.userAgent)||[]).pop());
+    return /Windows NT 5.2|WOW64/.test(window.navigator.userAgent);
 }
 
 (function(){

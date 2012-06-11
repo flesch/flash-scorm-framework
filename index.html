@@ -19,11 +19,12 @@
                     fvStudentId: LMSGetValue('cmi.core.student_id'),
                     fvStudentName: LMSGetValue('cmi.core.student_name'),
                     fvLessonLocation: LMSGetValue('cmi.core.lesson_location'),
-                    fvSuspendData: LMSGetValue('cmi.suspend_data')    
+                    fvSuspendData: LMSGetValue('cmi.suspend_data'),
+                    fvThinClient: /Windows NT 5.2|WOW64/.test(window.navigator.userAgent) 
                 };
             }
             return {};
-        })();            
+        })();
         if (query) {
             var i = query.length, keyValuePair;
             while (i--) {
